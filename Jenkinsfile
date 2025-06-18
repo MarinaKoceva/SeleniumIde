@@ -1,16 +1,13 @@
 pipeline {
     agent any
 
-    tools {
-        customTool 'NuGet'
-    }
-
     environment {
     DOTNET_VERSION = '6.0.100'
     CHROME_VERSION = '137.0.7151.120'
     CHROMEDRIVER_VERSION = '137.0.7151.120'
     CHROME_INSTALL_PATH = 'C:\\Program Files\\Google\\Chrome\\Application'
     CHROMEDRIVER_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe'
+    PATH = "C:\\Tools\\nuget;$PATH"
 }
 
     stages {
