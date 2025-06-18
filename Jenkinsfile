@@ -6,12 +6,11 @@ pipeline {
         CHROME_VERSION = ''
     }
 
-    stages {
-        stage('Checkout code') {
-            steps {
-                git url: 'https://github.com/MarinaKoceva/SeleniumIde.git'
-            }
-        }
+    stage('Checkout code') {
+    steps {
+        git branch: 'main', url: 'https://github.com/MarinaKoceva/SeleniumIde.git'
+    }
+}
 
         stage('Install .NET SDK and Runtime') {
             steps {
