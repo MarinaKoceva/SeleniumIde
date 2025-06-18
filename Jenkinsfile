@@ -25,8 +25,8 @@ pipeline {
 
         stage('Ensure Chrome version') {
             steps {
+                bat "echo Checking if Chrome is installed"
                 bat '''
-                    echo Checking if Chrome is installed
                     choco list --localonly | findstr googlechrome >nul
                     IF %ERRORLEVEL%==0 (
                         echo Chrome is installed. Proceeding with uninstall...
@@ -34,10 +34,9 @@ pipeline {
                     ) ELSE (
                         echo Chrome not installed. Skipping uninstall.
                     )
-
-                    echo Installing Google Chrome version ${CHROME_VERSION}
-                    choco install googlechrome --version=${CHROME_VERSION} -y --allow-downgrade --ignore-checksums
                 '''
+                bat "echo Installing Google Chrome version ${env.CHROME_VERSION}"
+                bat "choco install googlechrome --version=${env.CHROME_VERSION} -y --allow-downgrade --ignore-checksums"
             }
         }
 
