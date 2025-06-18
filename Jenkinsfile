@@ -25,20 +25,24 @@ pipeline {
             }
         }
 
-        stage('Ensure Chrome version') {
+                stage('Ensure Chrome version') {
             steps {
-                bat "echo Checking if Chrome is installed"
                 bat '''
-                    choco list --localonly | findstr googlechrome >nul
-                    IF %ERRORLEVEL%==0 (
-                        echo Chrome is installed. Proceeding with uninstall...
-                        choco uninstall googlechrome -y
+                    echo Uninstalling any existing Chrome
+                    choco uninstall googlechrome -y --ignore-unfound --remove-dependencies || echo Continue if not found
+                '''
+                bat '''
+                    echo Installing Google Chrome version %CHROME_VERSION%
+                    choco install googlechrome --version=%CHROME_VERSION% -y --allow-downgrade --ignore-checksums
+                '''
+                bat '''
+                    IF EXIST "%ProgramFiles%\\Google\\Chrome\\Application\\chrome.exe" (
+                        echo Chrome installation verified.
                     ) ELSE (
-                        echo Chrome not installed. Skipping uninstall.
+                        echo Chrome installation failed!
+                        exit 1
                     )
                 '''
-                bat "echo Installing Google Chrome version ${env.CHROME_VERSION}"
-                bat "choco install googlechrome --version=${env.CHROME_VERSION} -y --allow-downgrade --ignore-checksums"
             }
         }
 
