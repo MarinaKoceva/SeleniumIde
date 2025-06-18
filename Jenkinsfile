@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        'com.cloudbees.jenkins.plugins.customtools.CustomTool' 'NuGet'
+        com.cloudbees.jenkins.plugins.customtools.CustomTool 'NuGet'
     }
 
     environment {
@@ -63,7 +63,7 @@ pipeline {
 
         stage('NuGet restore') {
             steps {
-                bat '"%NuGet_HOME%\\nuget.exe" restore SeleniumIde.sln'
+                bat 'nuget restore SeleniumIde.sln'
             }
         }
 
