@@ -2,7 +2,7 @@ pipeline {
     agent any
 
     tools {
-        com.cloudbees.jenkins.plugins.customtools.CustomTool 'NuGet'
+        customTool 'NuGet'
     }
 
     environment {
