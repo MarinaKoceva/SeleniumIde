@@ -4,6 +4,7 @@ pipeline {
     environment {
         DOTNET_VERSION = "6.0.100"
         CHROME_VERSION = "137.0.7151.104"
+        CHROMEDRIVER_VERSION = "137.0.7151.104"
     }
 
     stages {
@@ -23,33 +24,19 @@ pipeline {
             }
         }
 
-        stage('Ensure Chrome version') {
-            steps {
-                bat "echo Checking if Chrome is installed"
-                bat '''
-                    choco list --localonly | findstr googlechrome >nul
-                    IF %ERRORLEVEL%==0 (
-                        echo Chrome is installed. Proceeding with uninstall...
-                        choco uninstall googlechrome -y
-                    ) ELSE (
-                        echo Chrome not installed. Skipping uninstall.
-                    )
-                '''
-
-                withEnv(["CHROME_VERSION=${CHROME_VERSION}"]) {
-                    bat "echo Installing Google Chrome version %CHROME_VERSION%"
-                    bat 'choco install googlechrome --version=%CHROME_VERSION% -y --allow-downgrade --ignore-checksums'
-                }
-            }
-        }
-
-        stage('Install matching ChromeDriver') {
+        stage('Install Chrome and ChromeDriver fallback') {
             steps {
                 bat '''
-                    echo Downloading ChromeDriver version 137.0.7151.104
-                    powershell -command "Invoke-WebRequest -Uri https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/137.0.7151.104/win64/chromedriver-win64.zip -OutFile chromedriver.zip -UseBasicParsing"
-                    powershell -command "Expand-Archive -Path chromedriver.zip -DestinationPath . -Force"
-                    powershell -command "Move-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe' -Force"
+                    echo Uninstalling existing Chrome if any...
+                    choco uninstall googlechrome -y || echo Chrome not installed
+
+                    echo Installing Chrome version %CHROME_VERSION%
+                    choco install googlechrome --version=%CHROME_VERSION% -y --allow-downgrade --ignore-checksums
+
+                    echo Downloading matching ChromeDriver %CHROMEDRIVER_VERSION%
+                    powershell -Command "Invoke-WebRequest -Uri https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%CHROMEDRIVER_VERSION%/win64/chromedriver-win64.zip -OutFile chromedriver.zip"
+                    powershell -Command "Expand-Archive -Path chromedriver.zip -DestinationPath . -Force"
+                    powershell -Command "Move-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe' -Force"
                 '''
             }
         }
