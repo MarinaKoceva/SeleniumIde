@@ -35,8 +35,11 @@ pipeline {
                         echo Chrome not installed. Skipping uninstall.
                     )
                 '''
-                bat "echo Installing Google Chrome version %CHROME_VERSION%"
-                bat 'choco install googlechrome --version=%CHROME_VERSION% -y --allow-downgrade --ignore-checksums'
+                withEnv(["CHROME_VERSION=${CHROME_VERSION}"]) {
+                    bat "echo Installing Google Chrome version %CHROME_VERSION%"
+                    bat 'choco install googlechrome --version=%CHROME_VERSION% -y --allow-downgrade --ignore-checksums'
+}
+
 
             }
         }
