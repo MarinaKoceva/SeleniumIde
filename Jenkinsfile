@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        customTool 'NuGet'
+    }
+
     environment {
     DOTNET_VERSION = '6.0.100'
     CHROME_VERSION = '137.0.7151.120'
@@ -54,6 +58,12 @@ pipeline {
                     powershell -command "Expand-Archive -Path chromedriver.zip -DestinationPath chromedriver -Force"
                     powershell -command "Move-Item -Path .\\chromedriver\\chromedriver-win64\\chromedriver.exe -Destination '%CHROME_INSTALL_PATH%\\chromedriver.exe' -Force"
                 '''
+            }
+        }
+
+        stage('NuGet restore') {
+            steps {
+                bat '"%NuGet_HOME%\\nuget.exe" restore SeleniumIde.sln'
             }
         }
 
