@@ -2,70 +2,77 @@ pipeline {
     agent any
 
     environment {
-        CHROME_VERSION = '127.0.6533.73'
-        CHROMEDRIVER_VERSION = '127.0.6533.72'
-        CHROME_INSTALL_PATH = 'C:\\Program Files\\Google\\Chrome\\Application'
-        CHROMEDRIVER_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe'
+        DOTNET_VERSION = '6.0.100'
+        DOTNET_RUNTIME_VERSION = '6.0.0'
+        CHROME_VERSION = '127.0.6533.73' // fallback if auto fails
     }
 
     stages {
         stage('Checkout code') {
             steps {
-                git branch: 'main', url: 'https://github.com/MarinaKoceva/SeleniumIde.git'
+                git url: 'https://github.com/MarinaKoceva/SeleniumIde.git'
             }
         }
 
         stage('Set up .NET Core') {
             steps {
-                bat '''
-                echo Installing .NET SDK 6.0
-                choco install dotnet-sdk -y --version=6.0.100
-                '''
+                bat """
+                echo Installing .NET SDK ${DOTNET_VERSION}
+                choco install dotnet-sdk --version=${DOTNET_VERSION} -y
+                """
             }
         }
 
         stage('Install .NET Runtime') {
             steps {
-                bat '''
-                echo Installing .NET Desktop Runtime 6.0
-                choco install dotnet-desktopruntime --version=6.0.0 -y
-                '''
+                bat """
+                echo Installing .NET Desktop Runtime ${DOTNET_RUNTIME_VERSION}
+                choco install dotnet-desktopruntime --version=${DOTNET_RUNTIME_VERSION} -y
+                """
             }
         }
 
-        stage('Uninstall Current Chrome') {
+        stage('Install Specific Chrome if not present') {
             steps {
-                bat '''
+                bat """
                 echo Checking if Chrome is installed
-                choco list --localonly | findstr googlechrome > nul
-                IF %ERRORLEVEL% EQU 0 (
-                    echo Chrome is installed. Proceeding with uninstall...
-                    choco uninstall googlechrome -y
-                ) ELSE (
-                    echo Chrome not installed. Skipping uninstall.
+                choco list --localonly | findstr googlechrome >nul
+                if %ERRORLEVEL% EQU 0 (
+                    echo Chrome is already installed.
+                ) else (
+                    echo Installing Google Chrome ${CHROME_VERSION}
+                    choco install googlechrome --version=${CHROME_VERSION} -y --allow-downgrade --ignore-checksums
                 )
-                exit 0
-                '''
+                """
             }
         }
 
-        stage('Install Specific Version of Chrome') {
+        stage('Download and Install Matching ChromeDriver') {
             steps {
-                bat '''
-                echo Installing Google Chrome version %CHROME_VERSION%
-                choco install googlechrome --version=%CHROME_VERSION% -y --allow-downgrade --ignore-checksums
-                '''
-            }
-        }
+                bat """
+                echo Detecting installed Chrome version...
 
-        stage('Download and Install ChromeDriver') {
-            steps {
-                bat '''
-                echo Downloading ChromeDriver version %CHROMEDRIVER_VERSION%
-                powershell -command "Invoke-WebRequest -Uri https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/137.0.7151.120/win64/chromedriver-win64.zip -OutFile chromedriver.zip -UseBasicParsing"
-                powershell -command "Expand-Archive -Path chromedriver.zip -DestinationPath ."
-                powershell -command "Move-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination '%CHROME_INSTALL_PATH%\\chromedriver.exe' -Force"
-                '''
+                for /f "tokens=3" %%v in ('reg query "HKLM\Software\Microsoft\Windows\CurrentVersion\App Paths\chrome.exe" /ve ^| find "\\"') do set ChromePath=%%v
+                for /f "tokens=3 delims= " %%v in ('"%%ChromePath%%" --version') do set ChromeVer=%%v
+                echo Installed Chrome version: %ChromeVer%
+
+                set "MajorVer="
+                for /f "tokens=1 delims=." %%a in ("%ChromeVer%") do set MajorVer=%%a
+                echo Detected Chrome major version: %MajorVer%
+
+                echo Cleaning up old driver...
+                powershell -command "Remove-Item -Recurse -Force chromedriver.zip, chromedriver-win64 -ErrorAction SilentlyContinue"
+
+                echo Downloading ChromeDriver for version %ChromeVer%...
+                set ChromeDriverURL=https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%ChromeVer%/win64/chromedriver-win64.zip
+                powershell -command "Invoke-WebRequest -Uri %ChromeDriverURL% -OutFile chromedriver.zip -UseBasicParsing"
+
+                echo Extracting driver...
+                powershell -command "Expand-Archive -Path chromedriver.zip -DestinationPath . -Force"
+
+                echo Moving to Chrome folder...
+                powershell -command "Move-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe' -Force"
+                """
             }
         }
 
@@ -90,8 +97,8 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: '**/TestResults/**/*.trx', allowEmptyArchive: true
-            junit '**/TestResults/**/*.trx'
+            archiveArtifacts artifacts: '**/TestResults/*.trx', allowEmptyArchive: true
+            junit '**/TestResults/*.trx'
         }
     }
 }
