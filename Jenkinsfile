@@ -78,7 +78,9 @@ pipeline {
 
         post {
             always {
-                junit 'SeleniumIDE/TestResults/TestResults.trx'
+                bat 'dotnet tool install --global trx2junit'
+                bat 'trx2junit SeleniumIDE/TestResults/TestResults.trx'
+                junit 'SeleniumIDE/TestResults/TestResults.xml'
                 archiveArtifacts artifacts: 'SeleniumIDE/TestResults/TestResults.trx', fingerprint: true
             }
         }
