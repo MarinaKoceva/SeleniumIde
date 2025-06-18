@@ -2,9 +2,10 @@ pipeline {
     agent any
 
     environment {
-        DOTNET_VERSION = "6.0.100"
-        CHROME_VERSION = "137.0.7151.104"
-        CHROMEDRIVER_VERSION = "137.0.7151.104"
+        CHROME_VERSION = '137.0.7151.120'
+        CHROMEDRIVER_VERSION = '137.0.7151.120'
+        CHROME_INSTALL_PATH = 'C:\\Program Files\\Google\\Chrome\\Application'
+        CHROMEDRIVER_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe'
     }
 
     stages {
@@ -18,25 +19,35 @@ pipeline {
             steps {
                 bat "echo Installing .NET SDK ${DOTNET_VERSION}"
                 bat "choco install dotnet-sdk --version=${DOTNET_VERSION} -y"
-
                 bat "echo Installing .NET Desktop Runtime ${DOTNET_VERSION}"
                 bat "choco install dotnet-desktopruntime --version=6.0.0 -y"
             }
         }
 
-        stage('Install Chrome and ChromeDriver fallback') {
+        stage('Ensure Chrome version') {
+            steps {
+                bat "echo Checking if Chrome is installed"
+                bat '''
+                    choco list --localonly | findstr googlechrome >nul
+                    IF %ERRORLEVEL%==0 (
+                        echo Chrome is installed. Proceeding with uninstall...
+                        choco uninstall googlechrome -y
+                    ) ELSE (
+                        echo Chrome not installed. Skipping uninstall.
+                    )
+                '''
+                bat "echo Installing Google Chrome version ${env.CHROME_VERSION}"
+                bat "choco install googlechrome --version=${env.CHROME_VERSION} -y --allow-downgrade --ignore-checksums"
+            }
+        }
+
+        stage('Install matching ChromeDriver') {
             steps {
                 bat '''
-                    echo Uninstalling existing Chrome if any...
-                    choco uninstall googlechrome -y || echo Chrome not installed
-
-                    echo Installing Chrome version %CHROME_VERSION%
-                    choco install googlechrome --version=%CHROME_VERSION% -y --allow-downgrade --ignore-checksums
-
-                    echo Downloading matching ChromeDriver %CHROMEDRIVER_VERSION%
-                    powershell -Command "Invoke-WebRequest -Uri https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%CHROMEDRIVER_VERSION%/win64/chromedriver-win64.zip -OutFile chromedriver.zip"
-                    powershell -Command "Expand-Archive -Path chromedriver.zip -DestinationPath . -Force"
-                    powershell -Command "Move-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe' -Force"
+                    echo Downloading ChromeDriver version %CHROMEDRIVER_VERSION%
+                    powershell -command "Invoke-WebRequest -Uri https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%CHROMEDRIVER_VERSION%/win64/chromedriver-win64.zip -OutFile chromedriver.zip -UseBasicParsing"
+                    powershell -command "Expand-Archive -Path chromedriver.zip -DestinationPath . -Force"
+                    powershell -command "Move-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination '%CHROME_INSTALL_PATH%\\chromedriver.exe' -Force"
                 '''
             }
         }
