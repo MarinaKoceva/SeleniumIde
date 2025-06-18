@@ -76,10 +76,10 @@ pipeline {
         }
     }
 
-    post {
-        always {
-            junit '**/TestResults/*.trx'
-            archiveArtifacts artifacts: '**/TestResults/*.trx', fingerprint: true
+        post {
+            always {
+                junit 'SeleniumIDE/TestResults/TestResults.trx'
+                archiveArtifacts artifacts: 'SeleniumIDE/TestResults/TestResults.trx', fingerprint: true
+            }
         }
-    }
 }
