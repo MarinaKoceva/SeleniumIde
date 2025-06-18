@@ -2,8 +2,8 @@ pipeline {
     agent any
 
     environment {
-        CHROME_VERSION = '137.0.7151.104'
-        CHROMEDRIVER_VERSION = '137.0.7151.7000'
+        CHROME_VERSION = '127.0.6533.73'
+        CHROMEDRIVER_VERSION = '127.0.6533.72'
         CHROME_INSTALL_PATH = 'C:\\Program Files\\Google\\Chrome\\Application'
         CHROMEDRIVER_PATH = 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe'
     }
@@ -27,8 +27,14 @@ pipeline {
         stage('Uninstall Current Chrome') {
             steps {
                 bat '''
-                echo Uninstalling current Google Chrome
-                choco uninstall googlechrome -y
+                echo Checking if Chrome is installed
+                choco list --localonly | findstr googlechrome
+                if %ERRORLEVEL% EQU 0 (
+                    echo Chrome is installed. Proceeding with uninstall...
+                    choco uninstall googlechrome -y
+                ) else (
+                    echo Chrome not installed. Skipping uninstall.
+                )
                 '''
             }
         }
@@ -74,8 +80,8 @@ pipeline {
 
     post {
         always {
-            archiveArtifacts artifacts: '**/TestResults/*.trx', allowEmptyArchive: true
-            junit '**/TestResults/*.trx'
+            archiveArtifacts artifacts: '**/TestResults/**/*.trx', allowEmptyArchive: true
+            junit '**/TestResults/**/*.trx'
         }
     }
 }
