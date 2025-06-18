@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         DOTNET_VERSION = "6.0.100"
-        CHROME_VERSION = "127.0.6533.73"
+        CHROME_VERSION = "137.0.7151.104"
     }
 
     stages {
@@ -43,8 +43,8 @@ pipeline {
         stage('Install matching ChromeDriver') {
             steps {
                 bat '''
-                    echo Downloading ChromeDriver version 127.0.6533.72
-                    powershell -command "Invoke-WebRequest -Uri https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/127.0.6533.72/win64/chromedriver-win64.zip -OutFile chromedriver.zip -UseBasicParsing"
+                    echo Downloading ChromeDriver version 137.0.7151.104
+                    powershell -command "Invoke-WebRequest -Uri https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/137.0.7151.104/win64/chromedriver-win64.zip -OutFile chromedriver.zip -UseBasicParsing"
                     powershell -command "Expand-Archive -Path chromedriver.zip -DestinationPath . -Force"
                     powershell -command "Move-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe' -Force"
                 '''
