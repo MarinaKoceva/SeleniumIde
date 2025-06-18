@@ -2,43 +2,52 @@ pipeline {
     agent any
 
     environment {
-        CHROME_DRIVER_VERSION = ''
-        CHROME_VERSION = ''
+        DOTNET_VERSION = "6.0.100"
+        CHROME_VERSION = "127.0.6533.73"
     }
 
-    stage('Checkout code') {
-    steps {
-        git branch: 'main', url: 'https://github.com/MarinaKoceva/SeleniumIde.git'
-    }
-}
+    stages {
+        stage('Checkout code') {
+            steps {
+                git branch: 'main', url: 'https://github.com/MarinaKoceva/SeleniumIde.git'
+            }
+        }
 
         stage('Install .NET SDK and Runtime') {
             steps {
-                bat 'choco install dotnet-sdk -y --version=6.0.100'
-                bat 'choco install dotnet-desktopruntime --version=6.0.0 -y'
+                bat "echo Installing .NET SDK ${DOTNET_VERSION}"
+                bat "choco install dotnet-sdk --version=${DOTNET_VERSION} -y"
+
+                bat "echo Installing .NET Desktop Runtime ${DOTNET_VERSION}"
+                bat "choco install dotnet-desktopruntime --version=6.0.0 -y"
             }
         }
 
         stage('Ensure Chrome version') {
             steps {
                 bat '''
-                powershell -Command "(Get-ItemProperty -Path \"HKLM:\\Software\\Google\\Chrome\\BLBeacon\").version" > chrome_version.txt
+                    echo Checking if Chrome is installed
+                    choco list --localonly | findstr googlechrome >nul
+                    IF %ERRORLEVEL%==0 (
+                        echo Chrome is installed. Proceeding with uninstall...
+                        choco uninstall googlechrome -y
+                    ) ELSE (
+                        echo Chrome not installed. Skipping uninstall.
+                    )
+
+                    echo Installing Google Chrome version ${CHROME_VERSION}
+                    choco install googlechrome --version=${CHROME_VERSION} -y --allow-downgrade --ignore-checksums
                 '''
-                script {
-                    def ver = readFile('chrome_version.txt').trim()
-                    env.CHROME_VERSION = ver
-                    env.CHROME_DRIVER_VERSION = ver.replaceAll(/\.[^.]+$/, '') // Trim last dot group
-                }
             }
         }
 
         stage('Install matching ChromeDriver') {
             steps {
                 bat '''
-                echo Downloading ChromeDriver version %CHROME_DRIVER_VERSION%
-                powershell -Command "Invoke-WebRequest -Uri https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/%CHROME_DRIVER_VERSION%/win64/chromedriver-win64.zip -OutFile chromedriver.zip -UseBasicParsing"
-                powershell -Command "Expand-Archive -Path chromedriver.zip -DestinationPath . -Force"
-                powershell -Command "Move-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe' -Force"
+                    echo Downloading ChromeDriver version 127.0.6533.72
+                    powershell -command "Invoke-WebRequest -Uri https://edgedl.me.gvt1.com/edgedl/chrome/chrome-for-testing/127.0.6533.72/win64/chromedriver-win64.zip -OutFile chromedriver.zip -UseBasicParsing"
+                    powershell -command "Expand-Archive -Path chromedriver.zip -DestinationPath . -Force"
+                    powershell -command "Move-Item -Path .\\chromedriver-win64\\chromedriver.exe -Destination 'C:\\Program Files\\Google\\Chrome\\Application\\chromedriver.exe' -Force"
                 '''
             }
         }
@@ -64,8 +73,8 @@ pipeline {
 
     post {
         always {
-            junit '**/TestResults.trx'
-            archiveArtifacts artifacts: '**/TestResults.trx', allowEmptyArchive: true
+            junit '**/TestResults/*.trx'
+            archiveArtifacts artifacts: '**/TestResults/*.trx', fingerprint: true
         }
     }
 }
