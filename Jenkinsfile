@@ -24,6 +24,15 @@ pipeline {
             }
         }
 
+        stage('Install .NET Runtime') {
+            steps {
+                bat '''
+                echo Installing .NET Desktop Runtime 6.0
+                choco install dotnet-desktopruntime --version=6.0.0 -y
+                '''
+            }
+        }
+
         stage('Uninstall Current Chrome') {
             steps {
                 bat '''
